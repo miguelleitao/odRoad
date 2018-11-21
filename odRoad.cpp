@@ -115,8 +115,9 @@ int PlanView::saveXodr(xmlWriter xmlFile) {
 		/* Close the element named line. */
 		rc = xmlFile.closeElement();
 
+		assert( abs(total_length-geoNode.s)<0.001 );
+
 		total_length += geoNode.length;
-		assert( abs(total_length-geoNode.x)<0.001 );
 		/* Close the element named geometry. */
 		rc = xmlFile.closeElement();
 	}
@@ -125,12 +126,12 @@ int PlanView::saveXodr(xmlWriter xmlFile) {
 }
 
 
-int PlanView::print() {
+void PlanView::print() {
 	unsigned i;
 	
 	double total_length = 0.;
 	printf("planView\n");
-	for( i=0 ; rc>=0 && i<size() ; i++ ) {
+	for( i=0 ; i<size() ; i++ ) {
 		/* Start an element named "geometry" as child of planView. */
 		printf("  geometry\n");
 
@@ -143,11 +144,11 @@ int PlanView::print() {
 		printf("    hdg: %lf\n",	geoNode.hdg);
 		printf("    length: %lf\n", 	geoNode.length);
 
+		assert( abs(total_length-geoNode.s)<0.001 );
+
 		total_length += geoNode.length;
-		assert( abs(total_length-geoNode.x)<0.001 );
 	}
-	printf("gravou %u segs\n",i);
-	return i;
+	printf("listed %u segs\n",i);
 }
 
 
@@ -156,9 +157,32 @@ int odRoad::loadXodr(string &fname) {
 	return 0;
 }
 
+int odRoad::saveXodr(const char *fname) {
+	xmlWriter xmlFile;
+	xmlFile.open(fname);
+	xmlFile.writeElement("OpenDRIVE");
+	  xmlFile.writeElement("header");
+	    xmlFile.writeAttribute("revMajor", "1");
+	    xmlFile.writeAttribute("revMinor", "4");
+	    xmlFile.writeAttribute("vendor", "ISEP");
+	    xmlFile.writeElement("geoReference");
+	    
+	    xmlFile.closeElement();	// geoReference
 
+	  xmlFile.closeElement();	// header
+	  xmlFile.writeElement("road");
+	    xmlFile.writeElement("link");
+	  
+	    xmlFile.closeElement();	// link
+	    planView.saveXodr(xmlFile);
+	  xmlFile.closeElement();	// road
+	xmlFile.closeElement();		// OpenDRIVE
+	xmlFile.close();
+	return 0;
+}
 
 void odRoad::print() {
+	planView.print();
 };
 
 

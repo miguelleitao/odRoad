@@ -70,9 +70,11 @@ class PlanView : public vector<odrGeometry> {
 	int loadPts(const char * fname);
 	int savePts(const char * fname);
 	int saveXodr(class xmlWriter);
+	void print();
 };
 
 class odRoad {
+    public:
 	string name;
 	scalar length;
 	int id;
@@ -87,8 +89,9 @@ class odRoad {
 		junction = 0;
 	}
 	int loadXodr(string &fname);
-	int saveXodr(string &fname);
-	int loadPts(const char*fname) {
+	int saveXodr(const char* fname);
+	int loadPts(const char* fname) {
+		name = fname;
 		return planView.loadPts(fname);
 	}
 	void print();
@@ -103,7 +106,7 @@ class xmlWriter {
 	xmlWriter() {
 		fname = "";
 	}
-	void open(char *file_name) {
+	void open(const char *file_name) {
 		fname = file_name;
 		xmlFile = xmlNewTextWriterDoc(&xmlDoc, 0);
 
