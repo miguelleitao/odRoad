@@ -78,11 +78,14 @@ class xmlWriter {
 			fprintf(stderr,"error writing attribute '%s'\n", aName);
 		return rc;
 	}
+	int writeAttribute(const char*  aName, string  aVal) {
+		return writeAttribute(aName, aVal.c_str());
+	}
 	int writeAttributeInt(const char* aName, int aVal) {
     		/* Add an attribute with name aName and value v to current element. */
     		int rc;
     		char vStr[180];
-    		sprintf(vStr,"%d",aVal);
+    		sprintf(vStr, "%d", aVal);
     		rc = writeAttribute( aName, vStr);
     		return rc;
 	}
@@ -90,7 +93,7 @@ class xmlWriter {
     		/* Add an attribute with name aName and value v to current element. */
     		int rc;
     		char vStr[180];
-    		sprintf(vStr,"%lf",aVal);
+    		sprintf(vStr, "%lf", aVal);
     		rc = writeAttribute( aName, vStr);
     		return rc;
 	}
@@ -172,6 +175,11 @@ class odrCurve {
 	scalar b;
 	scalar c;
 	scalar d;
+	odrCurve() {
+		s = 0.;
+		a = 0.;	b = 0.;
+		c = 0.;	d = 0.;
+	}
 	int saveXodr(xmlWriter xmlFile,const char *eName) {
 		xmlFile.writeElement(eName);
 		xmlFile.writeAttributeDouble("sOffset", s);
@@ -184,10 +192,78 @@ class odrCurve {
 	}	
 };
 
+class odrHeight {
+    public:
+	scalar s;
+	scalar inner;
+	scalar outer;
+	odrHeight() {
+		s = 0.;
+		inner = 0.;
+		outer =0.;
+	}
+	odrHeight(double h) {
+		inner = h;
+		outer = h;
+	}
+	odrHeight(double h1, double h2) {
+		inner = h1;
+		outer = h2;
+	}
+	void set(double h) {
+		inner = h;
+		outer = h;
+	}
+	int saveXodr(xmlWriter xmlFile) {
+		xmlFile.writeElement("height");
+		xmlFile.writeAttributeDouble("sOffset", s);
+		xmlFile.writeAttributeDouble("heightInner", inner);
+		xmlFile.writeAttributeDouble("heightOuter", outer);
+		xmlFile.closeElement();
+		return 1;
+	}
+};
+
+class odrMark {
+    public:
+	scalar s;
+	short int type;
+	short int weight;
+	short int color;
+	double width;
+	const char *strTableType[3] = { "none", "solid", "broken"};
+	const char *strTableWeight[2] = { "standard", "extra"};
+	const char *strTableColor[3] = { "standard", "white", "yellow"};
+
+	odrMark() {
+		s = 0.;
+		type = 0;
+		weight = 0;
+		color = 0;
+		width = 0.;
+	}
+	odrMark(double w) {
+		width = w;
+	}
+	int saveXodr(xmlWriter xmlFile) {
+		xmlFile.writeElement("roadMark");
+		xmlFile.writeAttributeDouble("sOffset", s);
+		xmlFile.writeAttributeEnum("type", type, strTableType);
+		xmlFile.writeAttributeEnum("weight", weight, strTableWeight);
+		xmlFile.writeAttributeEnum("color", color, strTableColor);
+		xmlFile.writeAttributeDouble("width", width);
+		xmlFile.closeElement();
+		return 1;
+	}	
+};
 class odrLink {
     public:
 	int from;
 	int to;
+	odrLink() {
+		from = 0;
+		to = 0;
+	}
 	int saveXodr(xmlWriter xmlFile) {
 		xmlFile.writeElement("link");
 		  xmlFile.writeElement("predecessor");
@@ -208,8 +284,15 @@ class odrLane {
 	short level;
 	odrLink link;
 	odrCurve width;
-	odrCurve mark;	
+	odrMark mark;
+	odrHeight height;	
 	const char *strTableType[4] = { "none", "driving", "border", "sidewalk" };
+	odrLane(int nId, int nType) {
+		id = nId;
+		type = nType;
+		level = 0;
+		mark.width = 0.12;
+	}
 	int saveXodr(xmlWriter xmlFile) {
 		xmlFile.writeElement("lane");
 		xmlFile.writeAttributeInt("id", id);
@@ -217,7 +300,8 @@ class odrLane {
 		xmlFile.writeAttributeInt("level", level);
 		link.saveXodr(xmlFile);
 		width.saveXodr(xmlFile,"width");
-		mark.saveXodr(xmlFile,"roadMark");
+		mark.saveXodr(xmlFile);
+		height.saveXodr(xmlFile);
 		xmlFile.closeElement();
 		return 1;
 	}
@@ -229,6 +313,54 @@ class odrLaneSection {
 	vector<odrLane> left;
 	vector<odrLane> center;
 	vector<odrLane> right;
+	odrLaneSection() {
+		s = 0.;
+		left.clear();
+		center.clear();
+		right.clear();
+	}
+	void setDefault() {
+		s = 0.;
+		odrLane centerLane(0,1);
+		centerLane.mark.type = 2;
+		center.push_back(centerLane);
+
+		odrLane rightLane(-1,1);
+		rightLane.width.a = 3.75;
+		rightLane.mark.type = 1;
+		right.push_back(rightLane);
+
+		odrLane leftLane(1,1);
+		leftLane.width.a = 3.75;
+		leftLane.mark.type = 1;
+		left.push_back(leftLane);
+
+		odrLane rightBorder(-2,2);
+		rightBorder.width.a = 0.7;
+		right.push_back(rightBorder);
+
+		odrLane leftBorder(2,2);
+		leftBorder.width.a = 0.7;
+		left.push_back(leftBorder);
+
+		odrLane rightWalk(-3,3);
+		rightWalk.width.a = 1.2;
+		rightWalk.height.set(0.15);
+		right.push_back(rightWalk);
+
+		odrLane leftWalk(3,3);
+		leftWalk.width.a = 1.2;
+		leftWalk.height.set(0.15);
+		left.push_back(leftWalk);
+
+		odrLane rightMargin(-4,0);
+		rightMargin.width.a = 4.7;
+		right.push_back(rightMargin);
+
+		odrLane leftMargin(4,0);
+		leftMargin.width.a = 4.7;
+		left.push_back(leftMargin);
+	}
 	int saveXodr(xmlWriter xmlFile) {
 		unsigned i;
 		xmlFile.writeElement("laneSection");
@@ -240,17 +372,24 @@ class odrLaneSection {
 		  xmlFile.closeElement();
 		
 		  xmlFile.writeElement("center");
-		  for( i=0 ; i<left.size() ; i++ )
+		  for( i=0 ; i<center.size() ; i++ )
 		    center[i].saveXodr(xmlFile);
 		  xmlFile.closeElement();
-		
+		printf("vai gravar right\n");
 		  xmlFile.writeElement("right");
-		  for( i=0 ; i<left.size() ; i++ )
+		  for( i=0 ; i<right.size() ; i++ )
 		    right[i].saveXodr(xmlFile);
 		  xmlFile.closeElement();
 
 		xmlFile.closeElement();
 		return 1;
+	}
+	void print() {
+		printf("LaneSection, s: %lf\n", s);
+		
+		printf("  Left, %lu lanes\n", left.size() );
+		printf("  Center, %lu lanes\n", center.size() );
+		printf("  Right, %lu lanes\n", right.size() );
 	}
 };
 
@@ -259,17 +398,24 @@ class odrLaneSection {
 class odrLanes {
     public:
 	odrLaneSection laneSection;
+	void setDefault() {
+		laneSection.setDefault();
+	}
 	int saveXodr(xmlWriter xmlFile) {
 		xmlFile.writeElement("lanes");
 		  laneSection.saveXodr(xmlFile);
 		xmlFile.closeElement();
 		return 1;
 	}
+	void print() {
+		laneSection.print();
+	}
 };
 
 
 class PlanView : public vector<odrGeometry> {
     public:
+	scalar length;
 	int loadPts(const char * fname);
 	int savePts(const char * fname);
 	int saveXodr(class xmlWriter);
@@ -295,7 +441,12 @@ class odRoad {
 	int saveXodr(const char* fname);
 	int loadPts(const char* fname) {
 		name = fname;
-		return planView.loadPts(fname);
+		int res = planView.loadPts(fname);
+		if ( res ) {
+			lanes.setDefault();
+			length = planView.length;
+		}
+		return res;
 	}
 	void print();
 };

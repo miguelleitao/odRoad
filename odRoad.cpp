@@ -26,8 +26,8 @@ int PlanView::loadPts(const char *fname) {
     long comments = 0;
     long invalid = 0;
     long lines = 0;
-    double length;
-    double total_length = 0.;
+
+    double seg_length = 0.;
     int file_format = 6;
     double p[3], e[3];
     //double last_v[3];
@@ -36,6 +36,7 @@ int PlanView::loadPts(const char *fname) {
 	char *line = (char *) malloc (PTS_MAX_LINE_SIZE + 1);
 	size_t line_len = PTS_MAX_LINE_SIZE;
 
+	length = 0.;
 	fin = fopen(fname,"r");
 	if ( ! fin ) {
 		fprintf(stderr, "Cannot open file '%s'\n", fname);
@@ -72,17 +73,18 @@ int PlanView::loadPts(const char *fname) {
 			p[0] = (double)vertexes;
 			vertexes++;
 		}
-		length = sqrt( (p[0]-last_p[0])*(p[0]-last_p[0]) + (p[1]-last_p[1])*(p[1]-last_p[1]) );
+		seg_length = sqrt( (p[0]-last_p[0])*(p[0]-last_p[0]) + (p[1]-last_p[1])*(p[1]-last_p[1]) );
+		e[0] = atan2( p[1]-last_p[1], p[0]-last_p[0]);
 
 		odrGeometry *geoNode = new odrLine();
-		geoNode->s = total_length;
+		geoNode->s = length;
 		geoNode->x = p[0];
 		geoNode->y = p[1];
 		geoNode->hdg = e[0];
-		geoNode->length = length;
+		geoNode->length = seg_length;
 		push_back(*geoNode);
 		
-		total_length += length;
+		length += seg_length;
 
 		CopyVecD(p,last_p);
 	}
@@ -172,6 +174,10 @@ int odRoad::saveXodr(const char *fname) {
 	  xmlFile.closeElement();	// header
 
 	  xmlFile.writeElement("road");
+	    xmlFile.writeAttribute("name", name);
+	    xmlFile.writeAttributeDouble("length", length);
+	    xmlFile.writeAttributeInt("id", id);
+	    xmlFile.writeAttributeInt("junction", junction);
 
 	    xmlFile.writeElement("link");
 	    xmlFile.closeElement();	// link
@@ -194,6 +200,7 @@ int odRoad::saveXodr(const char *fname) {
 
 void odRoad::print() {
 	planView.print();
+	lanes.print();
 };
 
 
