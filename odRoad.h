@@ -20,84 +20,6 @@ typedef double scalar;
 #define GEOMETRY_ARC 	(221)
 #define GEOMETRY_SPIRAL	(222)
 
-class odrGeometry {
-    public:
-	odrGeometry() {
-		type = 0;
-		s = 0.;
-		x = 0.;
-		y = 0.;
-		hdg = 0.;
-		length = 0.;
-	}
-	unsigned char type;
-	scalar s;
-	scalar x;
-	scalar y;
-	scalar hdg;
-	scalar length;
-};
-
-class odrLine : public odrGeometry {
-    public:
-	odrLine() {
-		type = GEOMETRY_LINE;
-	}
-};
-class odrArc : public odrGeometry {
-    public:
-	scalar curv;
-	odrArc() {
-		type = GEOMETRY_ARC;
-		curv = 0.;
-	}
-};
-class odrSpiral : public odrGeometry {
-    public:
-	scalar curvIn;
-	scalar curvOut;
-	odrSpiral() {
-		type = GEOMETRY_SPIRAL;
-		curvIn = 0.;
-		curvOut = 0.;
-	}
-};
-
-//typedef vector<Geometry> PlanView;
-
-class PlanView : public vector<odrGeometry> {
-    public:
-	int loadPts(const char * fname);
-	int savePts(const char * fname);
-	int saveXodr(class xmlWriter);
-	void print();
-};
-
-class odRoad {
-    public:
-	string name;
-	scalar length;
-	int id;
-	int junction;
-
-	PlanView planView;
-
-	odRoad() {
-		name = "";
-		length = 0.;
-		id = -1;
-		junction = 0;
-	}
-	int loadXodr(string &fname);
-	int saveXodr(const char* fname);
-	int loadPts(const char* fname) {
-		name = fname;
-		return planView.loadPts(fname);
-	}
-	void print();
-};
-
-
 class xmlWriter {
     public:
 	const char* fname;
@@ -172,6 +94,12 @@ class xmlWriter {
     		rc = writeAttribute( aName, vStr);
     		return rc;
 	}
+	int writeAttributeEnum(const char* aName, int idx, const char **strTable) {
+    		/* Add an attribute with name aName and value v to current element. */
+    		int rc;
+    		rc = writeAttribute( aName, strTable[idx]);
+    		return rc;
+	}
 	int writeAttributesXY(scalar x, scalar y) {
     		/* Add an attribute with name aName and value v to current element. */
 		int rc;
@@ -189,6 +117,188 @@ class xmlWriter {
 		}
 		return rc;
 	}
-
 };
+
+
+class odrGeometry {
+    public:
+	odrGeometry() {
+		type = 0;
+		s = 0.;
+		x = 0.;
+		y = 0.;
+		hdg = 0.;
+		length = 0.;
+	}
+	unsigned char type;
+	scalar s;
+	scalar x;
+	scalar y;
+	scalar hdg;
+	scalar length;
+};
+
+class odrLine : public odrGeometry {
+    public:
+	odrLine() {
+		type = GEOMETRY_LINE;
+	}
+};
+
+class odrArc : public odrGeometry {
+    public:
+	scalar curv;
+	odrArc() {
+		type = GEOMETRY_ARC;
+		curv = 0.;
+	}
+};
+class odrSpiral : public odrGeometry {
+    public:
+	scalar curvIn;
+	scalar curvOut;
+	odrSpiral() {
+		type = GEOMETRY_SPIRAL;
+		curvIn = 0.;
+		curvOut = 0.;
+	}
+};
+
+//typedef vector<Geometry> PlanView;
+class odrCurve {
+    public:
+	scalar s;
+	scalar a;
+	scalar b;
+	scalar c;
+	scalar d;
+	int saveXodr(xmlWriter xmlFile,const char *eName) {
+		xmlFile.writeElement(eName);
+		xmlFile.writeAttributeDouble("sOffset", s);
+		xmlFile.writeAttributeDouble("a", a);
+		xmlFile.writeAttributeDouble("b", b);
+		xmlFile.writeAttributeDouble("c", c);
+		xmlFile.writeAttributeDouble("d", d);
+		xmlFile.closeElement();
+		return 1;
+	}	
+};
+
+class odrLink {
+    public:
+	int from;
+	int to;
+	int saveXodr(xmlWriter xmlFile) {
+		xmlFile.writeElement("link");
+		  xmlFile.writeElement("predecessor");
+		    xmlFile.writeAttributeInt("id", from);
+		  xmlFile.closeElement();
+		  xmlFile.writeElement("sucessor");
+		    xmlFile.writeAttributeInt("id", to);
+		  xmlFile.closeElement();
+		xmlFile.closeElement();
+		return 1;
+	}
+};
+
+class odrLane {
+    public:
+	int id;
+	unsigned short type;
+	short level;
+	odrLink link;
+	odrCurve width;
+	odrCurve mark;	
+	const char *strTableType[4] = { "none", "driving", "border", "sidewalk" };
+	int saveXodr(xmlWriter xmlFile) {
+		xmlFile.writeElement("lane");
+		xmlFile.writeAttributeInt("id", id);
+		xmlFile.writeAttributeEnum("type", type, strTableType);
+		xmlFile.writeAttributeInt("level", level);
+		link.saveXodr(xmlFile);
+		width.saveXodr(xmlFile,"width");
+		mark.saveXodr(xmlFile,"roadMark");
+		xmlFile.closeElement();
+		return 1;
+	}
+};
+
+class odrLaneSection {
+    public:
+	scalar s;
+	vector<odrLane> left;
+	vector<odrLane> center;
+	vector<odrLane> right;
+	int saveXodr(xmlWriter xmlFile) {
+		unsigned i;
+		xmlFile.writeElement("laneSection");
+		xmlFile.writeAttributeDouble("s", s);
+		
+		  xmlFile.writeElement("left");
+		  for( i=0 ; i<left.size() ; i++ )
+		    left[i].saveXodr(xmlFile);
+		  xmlFile.closeElement();
+		
+		  xmlFile.writeElement("center");
+		  for( i=0 ; i<left.size() ; i++ )
+		    center[i].saveXodr(xmlFile);
+		  xmlFile.closeElement();
+		
+		  xmlFile.writeElement("right");
+		  for( i=0 ; i<left.size() ; i++ )
+		    right[i].saveXodr(xmlFile);
+		  xmlFile.closeElement();
+
+		xmlFile.closeElement();
+		return 1;
+	}
+};
+
+
+
+class odrLanes {
+    public:
+	odrLaneSection laneSection;
+	int saveXodr(xmlWriter xmlFile) {
+		xmlFile.writeElement("lanes");
+		  laneSection.saveXodr(xmlFile);
+		xmlFile.closeElement();
+		return 1;
+	}
+};
+
+
+class PlanView : public vector<odrGeometry> {
+    public:
+	int loadPts(const char * fname);
+	int savePts(const char * fname);
+	int saveXodr(class xmlWriter);
+	void print();
+};
+
+class odRoad {
+    public:
+	string name;
+	scalar length;
+	int id;
+	int junction;
+
+	PlanView planView;
+	odrLanes lanes;
+	odRoad() {
+		name = "";
+		length = 0.;
+		id = -1;
+		junction = 0;
+	}
+	int loadXodr(string &fname);
+	int saveXodr(const char* fname);
+	int loadPts(const char* fname) {
+		name = fname;
+		return planView.loadPts(fname);
+	}
+	void print();
+};
+
+
 

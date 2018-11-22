@@ -121,6 +121,8 @@ int PlanView::saveXodr(xmlWriter xmlFile) {
 		/* Close the element named geometry. */
 		rc = xmlFile.closeElement();
 	}
+	/* Close the element named planView. */
+	rc = xmlFile.closeElement();
 	printf("gravou %u segs\n",i);
 	return i;
 }
@@ -166,15 +168,24 @@ int odRoad::saveXodr(const char *fname) {
 	    xmlFile.writeAttribute("revMinor", "4");
 	    xmlFile.writeAttribute("vendor", "ISEP");
 	    xmlFile.writeElement("geoReference");
-	    
 	    xmlFile.closeElement();	// geoReference
-
 	  xmlFile.closeElement();	// header
+
 	  xmlFile.writeElement("road");
+
 	    xmlFile.writeElement("link");
-	  
 	    xmlFile.closeElement();	// link
+
 	    planView.saveXodr(xmlFile);
+
+	    xmlFile.writeElement("elevationProfile");
+	    xmlFile.closeElement();	// elevationProfile
+
+	    xmlFile.writeElement("lateralProfile");
+	    xmlFile.closeElement();	// lateralProfile
+
+	    lanes.saveXodr(xmlFile);
+
 	  xmlFile.closeElement();	// road
 	xmlFile.closeElement();		// OpenDRIVE
 	xmlFile.close();
