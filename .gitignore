@@ -1,4 +1,6 @@
 pts2xodr
+*.xml
+*.xodr
 
 # Object files
 *.o
