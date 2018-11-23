@@ -23,6 +23,26 @@ typedef long double scalar;
 #define GEOMETRY_SPIRAL	(222)
 #define GEOMETRY_CUBIC	(223)
 
+
+
+#define OutputComment(msg) \
+	if (COMMENT_ON) \
+		fprintf(fout,"# %s\n",msg);
+	
+#define OutputPosition(pos) \
+	if (COMMENT_ON) \
+		fprintf(fout,"# pos=%.3f\n",(float)pos);
+
+#define OutputVertexReal(p) {\
+		fprintf(fout, "%.18Lf %.18Lf %.18Lf %.18Lf 0. 0.\n", p[0], p[1], p[2], scalar(az) ); \
+		vertexes_out++; \
+	}
+
+#define OutputVertex(p) \
+		if ( vertexes % SUPER_SAMPLING == 0) \
+			OutputVertexReal(p); \
+		vertexes++; 
+
 class xmlWriter {
     public:
 	const char* fname;
@@ -137,6 +157,13 @@ class xmlWriter {
 
 class odrGeometry {
     public:
+	unsigned char type;
+	scalar s;
+	scalar x;
+	scalar y;
+	scalar hdg;
+	scalar length;
+	scalar maxSample = 1.0L;
 	odrGeometry() {
 		type = 0;
 		s = 0.;
@@ -145,18 +172,41 @@ class odrGeometry {
 		hdg = 0.;
 		length = 0.;
 	}
-	unsigned char type;
-	scalar s;
-	scalar x;
-	scalar y;
-	scalar hdg;
-	scalar length;
+	virtual void print() {
+		fprintf(stderr,"Error: Virtual odrGeometry::print() called\n");
+		exit(1);
+	}
+	virtual void writePts() {
+		fprintf(stderr,"Error: Virtual odrGeometry::writePts() called\n");
+		exit(1);
+	}
 };
 
 class odrLine : public odrGeometry {
     public:
 	odrLine() {
 		type = GEOMETRY_LINE;
+	}
+	void print() {
+		printf("Line: %.3Lf %.3Lf, hdg: %.4Lf\n",x,y,hdg);
+	}
+	void writePts() {
+		int vertexes = 0;
+		int vertexes_out = 0;
+		int nsamp = floor(length/maxSample):
+		scalar dsamp = length / scalar(nsamp);
+		int i;
+		scalar sample[6];
+		for( i=0 ; i<nsamp ; i++ ) {
+			sample[0] = x + cosl(hdg)*dsamp*scalar(i);
+			sample[1] = x + sinl(hdg)*dsamp*scalar(i);
+			OutputVertex(sample);
+		}
+	    	OutputPosition(km2);   
+	    	OutputComment("RECTA_END");
+		if ( CONNECTION_POINTS ) 
+	    		// Output Connection Point
+	    		OutputVertex(p2);
 	}
 };
 
@@ -166,6 +216,9 @@ class odrArc : public odrGeometry {
 	odrArc() {
 		type = GEOMETRY_ARC;
 		curv = 0.;
+	}
+	void print() {
+		printf("Arc: %.3Lf %.3Lf, hdg: %.4Lf, curv: %.4Lf\n",x,y,hdg,curv);
 	}
 };
 class odrSpiral : public odrGeometry {
@@ -177,15 +230,21 @@ class odrSpiral : public odrGeometry {
 		curvIn = 0.;
 		curvOut = 0.;
 	}
+	void print() {
+		printf("Spiral: %.3Lf %.3Lf, hdg: %.4Lf, curv: %.4Lf %.4Lf\n",x,y,hdg,curvIn,curvOut);
+	}
 };
 class odrCubic : public odrGeometry {
     public:
 	scalar curvIn;
 	scalar curvOut;
-	odrSpiral() {
+	odrCubic() {
 		type = GEOMETRY_CUBIC;
 		curvIn = 0.;
 		curvOut = 0.;
+	}
+	void print() {
+		printf("Cubic: %.3Lf %.3Lf, hdg: %.4Lf\n",x,y,hdg);
 	}
 };
 //typedef vector<Geometry> PlanView;
