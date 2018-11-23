@@ -14,7 +14,9 @@
 
 using namespace std;
 
-typedef double scalar;
+typedef long double scalar;
+
+#define writeAttributeScalar(aName, aVal) writeAttributeLongDouble(aName, aVal)
 
 #define GEOMETRY_LINE 	(220)
 #define GEOMETRY_ARC 	(221)
@@ -98,6 +100,15 @@ class xmlWriter {
     		rc = writeAttribute( aName, vStr);
     		return rc;
 	}
+	int writeAttributeLongDouble(const char* aName, long double aVal) {
+    		/* Add an attribute with name aName and value v to current element. */
+    		int rc;
+    		char vStr[180];
+    		sprintf(vStr, "%.24Lg", aVal);
+    		rc = writeAttribute( aName, vStr);
+    		return rc;
+	}
+	
 	int writeAttributeEnum(const char* aName, int idx, const char **strTable) {
     		/* Add an attribute with name aName and value v to current element. */
     		int rc;
@@ -107,8 +118,8 @@ class xmlWriter {
 	int writeAttributesXY(scalar x, scalar y) {
     		/* Add an attribute with name aName and value v to current element. */
 		int rc;
-    		rc = writeAttributeDouble( "x", x);
-    		rc = writeAttributeDouble( "y", y);
+    		rc = writeAttributeScalar( "x", x);
+    		rc = writeAttributeScalar( "y", y);
     		return rc;
 	}
 	int closeElement() {
@@ -192,11 +203,11 @@ class odrCurve {
 	}
 	int saveXodr(xmlWriter xmlFile,const char *eName) {
 		xmlFile.writeElement(eName);
-		xmlFile.writeAttributeDouble("sOffset", s);
-		xmlFile.writeAttributeDouble("a", a);
-		xmlFile.writeAttributeDouble("b", b);
-		xmlFile.writeAttributeDouble("c", c);
-		xmlFile.writeAttributeDouble("d", d);
+		xmlFile.writeAttributeScalar("sOffset", s);
+		xmlFile.writeAttributeScalar("a", a);
+		xmlFile.writeAttributeScalar("b", b);
+		xmlFile.writeAttributeScalar("c", c);
+		xmlFile.writeAttributeScalar("d", d);
 		xmlFile.closeElement();
 		return 1;
 	}	
@@ -226,9 +237,9 @@ class odrHeight {
 	}
 	int saveXodr(xmlWriter xmlFile) {
 		xmlFile.writeElement("height");
-		xmlFile.writeAttributeDouble("sOffset", s);
-		xmlFile.writeAttributeDouble("heightInner", inner);
-		xmlFile.writeAttributeDouble("heightOuter", outer);
+		xmlFile.writeAttributeScalar("sOffset", s);
+		xmlFile.writeAttributeScalar("heightInner", inner);
+		xmlFile.writeAttributeScalar("heightOuter", outer);
 		xmlFile.closeElement();
 		return 1;
 	}
@@ -257,11 +268,11 @@ class odrMark {
 	}
 	int saveXodr(xmlWriter xmlFile) {
 		xmlFile.writeElement("roadMark");
-		xmlFile.writeAttributeDouble("sOffset", s);
+		xmlFile.writeAttributeScalar("sOffset", s);
 		xmlFile.writeAttributeEnum("type", type, strTableType);
 		xmlFile.writeAttributeEnum("weight", weight, strTableWeight);
 		xmlFile.writeAttributeEnum("color", color, strTableColor);
-		xmlFile.writeAttributeDouble("width", width);
+		xmlFile.writeAttributeScalar("width", width);
 		xmlFile.closeElement();
 		return 1;
 	}	
@@ -374,7 +385,7 @@ class odrLaneSection {
 	int saveXodr(xmlWriter xmlFile) {
 		unsigned i;
 		xmlFile.writeElement("laneSection");
-		xmlFile.writeAttributeDouble("s", s);
+		xmlFile.writeAttributeScalar("s", s);
 		
 		  xmlFile.writeElement("left");
 		  for( i=0 ; i<left.size() ; i++ )
@@ -395,7 +406,7 @@ class odrLaneSection {
 		return 1;
 	}
 	void print() {
-		printf("LaneSection, s: %lf\n", s);
+		printf("LaneSection, s: %Lf\n", s);
 		
 		printf("  Left, %lu lanes\n", left.size() );
 		printf("  Center, %lu lanes\n", center.size() );
@@ -457,6 +468,9 @@ class odRoad {
 			length = planView.length;
 		}
 		return res;
+	}
+	int savePts(const char* fname) {
+		return planView.savePts(fname);
 	}
 	void print();
 };
