@@ -19,6 +19,7 @@ typedef double scalar;
 #define GEOMETRY_LINE 	(220)
 #define GEOMETRY_ARC 	(221)
 #define GEOMETRY_SPIRAL	(222)
+#define GEOMETRY_CUBIC	(223)
 
 class xmlWriter {
     public:
@@ -166,7 +167,16 @@ class odrSpiral : public odrGeometry {
 		curvOut = 0.;
 	}
 };
-
+class odrCubic : public odrGeometry {
+    public:
+	scalar curvIn;
+	scalar curvOut;
+	odrSpiral() {
+		type = GEOMETRY_CUBIC;
+		curvIn = 0.;
+		curvOut = 0.;
+	}
+};
 //typedef vector<Geometry> PlanView;
 class odrCurve {
     public:
