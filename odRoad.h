@@ -103,7 +103,7 @@ class xmlWriter {
     		/* Add an attribute with name aName and value v to current element. */
     		int rc;
     		char vStr[180];
-    		sprintf(vStr, "%Lg", aVal);
+    		sprintf(vStr, "%.24Lg", aVal);
     		rc = writeAttribute( aName, vStr);
     		return rc;
 	}
