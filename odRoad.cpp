@@ -8,6 +8,7 @@
 #include "odRoad.h"
 
 int verbose = 0;
+FILE *fout = NULL;
 
 void CopyVecD(scalar *v, scalar *dest) {
         int i;
