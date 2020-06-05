@@ -3,10 +3,11 @@
  *
  */
 
+#include <stdio.h>
 #include <math.h>
+//include <string.h>
 #include <string>
 #include <vector>
-#include <math.h>
 #include <libxml/encoding.h>
 #include <libxml/xmlwriter.h>
 
@@ -14,7 +15,7 @@
 
 #define MY_ENCODING "ISO-8859-1"
 #define PTS_MAX_LINE_SIZE (80)
-//#define SUPER_SAMPLING (1)
+#define SUPER_SAMPLING (1)
 //#define COMMENT_ON  (0)
 #define CONNECTION_POINTS (1)
 extern FILE* fout;
@@ -31,6 +32,9 @@ typedef long double scalar;
 #define GEOMETRY_CUBIC	(223)
 
 class ptsFile {
+         int vertexes = 0;
+         int vertexes_out = 0;
+	 //const char access[8] = "";
     public:
 	const char* fname;
 	short int nColumns;
@@ -38,40 +42,40 @@ class ptsFile {
 	int nSegs;
 	short int format;
 	scalar *data;
-	int SUPER_SAMPLING;
 	short int COMMENT_ON;
-	FILE *handle:
+	FILE *handle;
 	ptsFile() {
 		fname = NULL;
 		nColumns = 0;
 		length = 0.;
 		nSegs = 0;
 		format = 0;
-		SUPER_SAMPLING = 0;
+		//SUPER_SAMPLING = 0;
 		COMMENT_ON = 0;
 		handle = NULL;
-		const char *access;
+		//access[0] = 0;
 	}
 	void writeVertexReal(const scalar *p) {
+		double az = 0.;  // calculated azimute.
 		fprintf(fout, "%.18Lf %.18Lf %.18Lf %.18Lf 0. 0.\n", p[0], p[1], p[2], scalar(az) );
 		vertexes_out++; 
 	}
 	void writeVertex(const scalar *p) {
 		if ( vertexes % SUPER_SAMPLING == 0)
-			OutputVertexReal(p);
+			writeVertexReal(p);
 		vertexes++; 
 	}
 	void writePosition(scalar pos) {
 		if (COMMENT_ON) 
 			fprintf(fout,"# pos=%.3f\n",(float)pos);
 	}
-	void writeComment(msg) {
+	void writeComment(const char *msg) {
 		if (COMMENT_ON) 
 			fprintf(fout,"# %s\n",msg);
 	}
 	FILE* openRead(const char *file_name ) {
 		fname = file_name;
-		access = "r";
+		char access[8] = "r";
 		handle = fopen(file_name, access);
 		if ( handle == NULL ) {
         		fprintf(stderr, "ptsFile: Error opening the pts file\n");
@@ -81,17 +85,20 @@ class ptsFile {
     	}
 	FILE* openWrite(const char *file_name) {
 		fname = file_name;
-		access = "w";
+		char access[8] = "w";
 		handle = fopen(file_name, access);
 		if ( handle == NULL ) {
         		fprintf(stderr, "ptsFile: Error opening the pts file\n");
         		return NULL;
 		}
+		vertexes = 0;
+		vertexes_out = 0;
 		return handle;
     	}
-	xmlWriter(char *file_name) {
+    	/*
+	void xmlWriter(char *file_name) {
 		open(file_name);
-	}
+	}*/
 
 };
 	
@@ -270,8 +277,8 @@ class odrLine : public odrGeometry {
 			OutputVertex(sample);
             // km2 +=
 		}
-	    OutputPosition(km2);   
-	    OutputComment("RECTA_END");
+	    //OutputPosition(km2);   
+	    //OutputComment("RECTA_END");
 		if ( CONNECTION_POINTS ) 
 	    		// Output Connection Point
 	    		OutputVertex(sample);
