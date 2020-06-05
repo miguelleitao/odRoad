@@ -3,14 +3,20 @@
  *
  */
 
+#include <math.h>
 #include <string>
 #include <vector>
 #include <libxml/encoding.h>
 #include <libxml/xmlwriter.h>
 
 
+
 #define MY_ENCODING "ISO-8859-1"
 #define PTS_MAX_LINE_SIZE (80)
+#define SUPER_SAMPLING (1)
+#define COMMENT_ON  (0)
+#define CONNECTION_POINTS (1)
+extern FILE* fout;
 
 using namespace std;
 
@@ -33,14 +39,14 @@ typedef long double scalar;
 	if (COMMENT_ON) \
 		fprintf(fout,"# pos=%.3f\n",(float)pos);
 
-#define OutputVertexReal(p) {\
+#define OutputVertexReal(p,az) {\
 		fprintf(fout, "%.18Lf %.18Lf %.18Lf %.18Lf 0. 0.\n", p[0], p[1], p[2], scalar(az) ); \
 		vertexes_out++; \
 	}
 
 #define OutputVertex(p) \
 		if ( vertexes % SUPER_SAMPLING == 0) \
-			OutputVertexReal(p); \
+			OutputVertexReal(p,0); \
 		vertexes++; 
 
 class xmlWriter {
@@ -193,20 +199,24 @@ class odrLine : public odrGeometry {
 	void writePts() {
 		int vertexes = 0;
 		int vertexes_out = 0;
-		int nsamp = floor(length/maxSample):
+		int nsamp = floor(length/maxSample);
 		scalar dsamp = length / scalar(nsamp);
 		int i;
 		scalar sample[6];
+        scalar km2 = 0.;
+        for( int i=0 ; i<6 ; i++ )
+            sample[i] = 0.; 
 		for( i=0 ; i<nsamp ; i++ ) {
 			sample[0] = x + cosl(hdg)*dsamp*scalar(i);
-			sample[1] = x + sinl(hdg)*dsamp*scalar(i);
+			sample[1] = y + sinl(hdg)*dsamp*scalar(i);
 			OutputVertex(sample);
+            // km2 +=
 		}
-	    	OutputPosition(km2);   
-	    	OutputComment("RECTA_END");
+	    OutputPosition(km2);   
+	    OutputComment("RECTA_END");
 		if ( CONNECTION_POINTS ) 
 	    		// Output Connection Point
-	    		OutputVertex(p2);
+	    		OutputVertex(sample);
 	}
 };
 
