@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <math.h>
 #include <libxml/encoding.h>
 #include <libxml/xmlwriter.h>
 
@@ -25,23 +26,73 @@ typedef long double scalar;
 
 
 
-#define OutputComment(msg) \
-	if (COMMENT_ON) \
-		fprintf(fout,"# %s\n",msg);
-	
-#define OutputPosition(pos) \
-	if (COMMENT_ON) \
-		fprintf(fout,"# pos=%.3f\n",(float)pos);
 
-#define OutputVertexReal(p) {\
-		fprintf(fout, "%.18Lf %.18Lf %.18Lf %.18Lf 0. 0.\n", p[0], p[1], p[2], scalar(az) ); \
-		vertexes_out++; \
+class ptsFile {
+    public:
+	const char* fname;
+	short int nColumns;
+	scalar length;
+	int nSegs;
+	short int format;
+	scalar *data;
+	int SUPER_SAMPLING;
+	short int COMMENT_ON;
+	FILE *handle:
+	ptsFile() {
+		fname = NULL;
+		nColumns = 0;
+		length = 0.;
+		nSegs = 0;
+		format = 0;
+		SUPER_SAMPLING = 0;
+		COMMENT_ON = 0;
+		handle = NULL;
+		const char *access;
+	}
+	void writeVertexReal(const scalar *p) {
+		fprintf(fout, "%.18Lf %.18Lf %.18Lf %.18Lf 0. 0.\n", p[0], p[1], p[2], scalar(az) );
+		vertexes_out++; 
+	}
+	void writeVertex(const scalar *p) {
+		if ( vertexes % SUPER_SAMPLING == 0)
+			OutputVertexReal(p);
+		vertexes++; 
+	}
+	void writePosition(scalar pos) {
+		if (COMMENT_ON) 
+			fprintf(fout,"# pos=%.3f\n",(float)pos);
+	}
+	void writeComment(msg) {
+		if (COMMENT_ON) 
+			fprintf(fout,"# %s\n",msg);
+	}
+	FILE* openRead(const char *file_name ) {
+		fname = file_name;
+		access = "r";
+		handle = fopen(file_name, access);
+		if ( handle == NULL ) {
+        		fprintf(stderr, "ptsFile: Error opening the pts file\n");
+        		return NULL;
+		}
+		return handle;
+    	}
+	FILE* openWrite(const char *file_name) {
+		fname = file_name;
+		access = "w";
+		handle = fopen(file_name, access);
+		if ( handle == NULL ) {
+        		fprintf(stderr, "ptsFile: Error opening the pts file\n");
+        		return NULL;
+		}
+		return handle;
+    	}
+	xmlWriter(char *file_name) {
+		open(file_name);
 	}
 
-#define OutputVertex(p) \
-		if ( vertexes % SUPER_SAMPLING == 0) \
-			OutputVertexReal(p); \
-		vertexes++; 
+};
+	
+	
 
 class xmlWriter {
     public:
@@ -193,7 +244,7 @@ class odrLine : public odrGeometry {
 	void writePts() {
 		int vertexes = 0;
 		int vertexes_out = 0;
-		int nsamp = floor(length/maxSample):
+		int nsamp = int(ceill(length/maxSample));
 		scalar dsamp = length / scalar(nsamp);
 		int i;
 		scalar sample[6];
